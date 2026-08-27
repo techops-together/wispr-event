@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllQuestions, getCuration } from "@/lib/store";
+import { getAllQuestions, getCuration, usingRedis } from "@/lib/store";
 import { hostAuthorized } from "@/lib/hostAuth";
 
 export const runtime = "nodejs";
@@ -22,5 +22,5 @@ export async function GET(req: NextRequest) {
     return b.ts - a.ts;
   });
 
-  return NextResponse.json({ questions, curation });
+  return NextResponse.json({ questions, curation, usingRedis });
 }
