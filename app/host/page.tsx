@@ -207,7 +207,7 @@ function HostDashboard() {
                     <p className="tf-curated-q">{q.question}</p>
                     <p className="tf-curated-meta">
                       {q.name}
-                      {q.org ? ` — ${q.org}` : ""} · {t.note}
+                      {q.org ? ` — ${q.org}` : ""}
                     </p>
                   </div>
                 </div>
@@ -242,11 +242,6 @@ function HostDashboard() {
                 </span>
               </div>
               <p className="tf-qcard-text">{q.question}</p>
-              {q.reason && q.score !== null && (
-                <p className="tf-small" style={{ margin: 0 }}>
-                  {q.reason}
-                </p>
-              )}
               <div className="tf-qcard-actions">
                 <button
                   className="tf-btn tf-btn-ghost"
