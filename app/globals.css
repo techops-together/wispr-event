@@ -369,41 +369,6 @@ body {
   margin-top: 6px;
 }
 
-.tf-curated {
-  background: var(--bg-invert);
-  color: var(--fg-on-invert);
-  border-radius: var(--r-card);
-  padding: 24px;
-  margin: 24px 0;
-}
-
-.tf-curated h2 {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin: 0 0 16px;
-  color: var(--fg-on-invert);
-}
-
-.tf-curated-item {
-  display: flex;
-  gap: 14px;
-  padding: 12px 0;
-  border-top: 1px solid rgba(251, 244, 237, 0.14);
-}
-
-.tf-curated-q {
-  font-size: 17px;
-  line-height: 1.45;
-  margin: 0 0 4px;
-}
-
-.tf-curated-meta {
-  font-size: 13px;
-  color: rgba(251, 244, 237, 0.65);
-}
-
 .tf-hostbar {
   display: flex;
   align-items: center;

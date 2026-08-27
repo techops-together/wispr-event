@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllQuestions, getCuration, usingRedis } from "@/lib/store";
+import { getAllQuestions, usingRedis } from "@/lib/store";
 import { hostAuthorized } from "@/lib/hostAuth";
 
 export const runtime = "nodejs";
@@ -9,10 +9,7 @@ export async function GET(req: NextRequest) {
   if (!hostAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const [questions, curation] = await Promise.all([
-    getAllQuestions(),
-    getCuration(),
-  ]);
+  const questions = await getAllQuestions();
 
   questions.sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -22,5 +19,5 @@ export async function GET(req: NextRequest) {
     return b.ts - a.ts;
   });
 
-  return NextResponse.json({ questions, curation, usingRedis });
+  return NextResponse.json({ questions, usingRedis });
 }

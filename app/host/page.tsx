@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Question = {
@@ -17,17 +17,12 @@ type Question = {
   pinned: boolean;
 };
 
-type Curation = { ts: number; top: { id: string; note: string }[] };
-
 function HostDashboard() {
   const params = useSearchParams();
   const key = params.get("key") ?? "";
 
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [curation, setCuration] = useState<Curation | null>(null);
   const [showHidden, setShowHidden] = useState(false);
-  const [curating, setCurating] = useState(false);
-  const [status, setStatus] = useState("");
   const [unauthorized, setUnauthorized] = useState(false);
   const [resetting, setResetting] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,7 +39,6 @@ function HostDashboard() {
       setUnauthorized(false);
       const data = await res.json();
       setQuestions(data.questions ?? []);
-      setCuration(data.curation ?? null);
     } catch {
       // transient — next poll will recover
     }
@@ -67,49 +61,10 @@ function HostDashboard() {
     load();
   }
 
-  async function curate() {
-    setCurating(true);
-    setStatus("Claude is reading every question...");
-    try {
-      const res = await fetch(`/api/host/curate?key=${encodeURIComponent(key)}`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setStatus(data.error ?? "Curation failed.");
-      } else {
-        setCuration(data.curation);
-        setStatus("");
-      }
-    } catch {
-      setStatus("Curation failed — the ranked list below still works.");
-    } finally {
-      setCurating(false);
-    }
-  }
-
-  const byId = useMemo(
-    () => new Map(questions.map((q) => [q.id, q])),
-    [questions]
-  );
-  const visible = questions.filter((q) => showHidden || !q.hidden);
-  const people = new Set(
-    questions.filter((q) => !q.hidden).map((q) => q.name.toLowerCase())
-  ).size;
-  const scored = questions.filter((q) => q.score !== null).length;
-
-  // Curation is generated once and cached, but a question can be hidden
-  // (or vanish, on a reset) afterward — never show a stale entry that no
-  // longer belongs on stage.
-  const curatedVisible = (curation?.top ?? []).filter((t) => {
-    const q = byId.get(t.id);
-    return q && !q.hidden;
-  });
-
   async function resetForEvent() {
     if (
       !window.confirm(
-        "This permanently deletes every question and the current curation. Only do this right before doors open. Continue?"
+        "This permanently deletes every question. Only do this right before doors open. Continue?"
       )
     ) {
       return;
@@ -124,6 +79,14 @@ function HostDashboard() {
       setResetting(false);
     }
   }
+
+  // Questions arrive already sorted best-first from the API (pinned, then
+  // score, then newest) — this list is the curation, no separate step needed.
+  const visible = questions.filter((q) => showHidden || !q.hidden);
+  const people = new Set(
+    questions.filter((q) => !q.hidden).map((q) => q.name.toLowerCase())
+  ).size;
+  const scored = questions.filter((q) => q.score !== null).length;
 
   if (unauthorized) {
     return (
@@ -163,13 +126,6 @@ function HostDashboard() {
 
         <div className="tf-hostbar">
           <button
-            className="tf-btn tf-btn-primary"
-            onClick={curate}
-            disabled={curating || questions.length === 0}
-          >
-            {curating ? "Curating..." : "Curate top 10"}
-          </button>
-          <button
             className="tf-btn tf-btn-ghost"
             onClick={() => setShowHidden((v) => !v)}
           >
@@ -185,41 +141,12 @@ function HostDashboard() {
           </button>
           <span className="tf-refresh-note">auto-refreshing every 4s</span>
         </div>
-        {status && <p className="tf-small">{status}</p>}
-
-        {curation && curatedVisible.length > 0 && (
-          <section className="tf-curated">
-            <h2>
-              Tonight&apos;s top {curatedVisible.length} — curated{" "}
-              {new Date(curation.ts).toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </h2>
-            {curatedVisible.map((t, i) => {
-              const q = byId.get(t.id)!;
-              return (
-                <div className="tf-curated-item" key={t.id}>
-                  <span className="tf-index">
-                    ({String(i + 1).padStart(2, "0")})
-                  </span>
-                  <div>
-                    <p className="tf-curated-q">{q.question}</p>
-                    <p className="tf-curated-meta">
-                      {q.name}
-                      {q.org ? ` — ${q.org}` : ""}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </section>
-        )}
 
         <div className="tf-host-grid">
           {visible.length === 0 && (
             <p className="tf-small">
-              Nothing yet — questions appear here the moment they are sent.
+              Nothing yet — questions appear here the moment they are sent,
+              best-first.
             </p>
           )}
           {visible.map((q) => (

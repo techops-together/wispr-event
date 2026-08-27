@@ -15,13 +15,7 @@ export type Question = {
   pinned: boolean;
 };
 
-export type Curation = {
-  ts: number;
-  top: { id: string; note: string }[];
-};
-
 const HASH_KEY = "wispr:questions";
-const CURATION_KEY = "wispr:curation";
 const MAX_QUESTIONS = 1000;
 
 // Upstash on Vercel injects either UPSTASH_* or KV_* names depending on how
@@ -40,12 +34,10 @@ export const usingRedis = redis !== null;
 // On Vercel without Redis this degrades per-instance — fine for testing only.
 type Mem = {
   questions: Map<string, Question>;
-  curation: Curation | null;
   counters: Map<string, { n: number; exp: number }>;
 };
 const mem: Mem = ((globalThis as any).__wisprMem ??= {
   questions: new Map(),
-  curation: null,
   counters: new Map(),
 });
 
@@ -90,35 +82,17 @@ export async function questionCount(): Promise<number> {
   return mem.questions.size;
 }
 
-// Wipes every stored question and the last curation. Used by the host's
-// "Reset for event" button — keep this destructive on purpose, no soft-delete.
+// Wipes every stored question. Used by the host's "Reset for event" button —
+// keep this destructive on purpose, no soft-delete.
 export async function clearAll(): Promise<void> {
   if (redis) {
-    await redis.del(HASH_KEY, CURATION_KEY);
+    await redis.del(HASH_KEY);
   } else {
     mem.questions.clear();
-    mem.curation = null;
   }
 }
 
 export const maxQuestions = MAX_QUESTIONS;
-
-export async function saveCuration(c: Curation): Promise<void> {
-  if (redis) {
-    await redis.set(CURATION_KEY, JSON.stringify(c));
-  } else {
-    mem.curation = c;
-  }
-}
-
-export async function getCuration(): Promise<Curation | null> {
-  if (redis) {
-    const raw = await redis.get(CURATION_KEY);
-    if (!raw) return null;
-    return typeof raw === "string" ? JSON.parse(raw) : (raw as Curation);
-  }
-  return mem.curation;
-}
 
 // Fixed-window counter used for IP rate limiting. Returns the count after
 // incrementing; the key expires after windowSec.
