@@ -90,6 +90,17 @@ export async function questionCount(): Promise<number> {
   return mem.questions.size;
 }
 
+// Wipes every stored question and the last curation. Used by the host's
+// "Reset for event" button — keep this destructive on purpose, no soft-delete.
+export async function clearAll(): Promise<void> {
+  if (redis) {
+    await redis.del(HASH_KEY, CURATION_KEY);
+  } else {
+    mem.questions.clear();
+    mem.curation = null;
+  }
+}
+
 export const maxQuestions = MAX_QUESTIONS;
 
 export async function saveCuration(c: Curation): Promise<void> {

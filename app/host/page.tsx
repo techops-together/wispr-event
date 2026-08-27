@@ -29,6 +29,7 @@ function HostDashboard() {
   const [curating, setCurating] = useState(false);
   const [status, setStatus] = useState("");
   const [unauthorized, setUnauthorized] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -97,6 +98,33 @@ function HostDashboard() {
   ).size;
   const scored = questions.filter((q) => q.score !== null).length;
 
+  // Curation is generated once and cached, but a question can be hidden
+  // (or vanish, on a reset) afterward — never show a stale entry that no
+  // longer belongs on stage.
+  const curatedVisible = (curation?.top ?? []).filter((t) => {
+    const q = byId.get(t.id);
+    return q && !q.hidden;
+  });
+
+  async function resetForEvent() {
+    if (
+      !window.confirm(
+        "This permanently deletes every question and the current curation. Only do this right before doors open. Continue?"
+      )
+    ) {
+      return;
+    }
+    setResetting(true);
+    try {
+      await fetch(`/api/host/reset?key=${encodeURIComponent(key)}`, {
+        method: "POST",
+      });
+      await load();
+    } finally {
+      setResetting(false);
+    }
+  }
+
   if (unauthorized) {
     return (
       <main className="tf-container" style={{ paddingTop: 60 }}>
@@ -147,22 +175,29 @@ function HostDashboard() {
           >
             {showHidden ? "Conceal hidden" : `Show hidden (${questions.filter((q) => q.hidden).length})`}
           </button>
+          <button
+            className="tf-btn tf-btn-ghost"
+            onClick={resetForEvent}
+            disabled={resetting}
+            title="Deletes every question — use once, right before doors open"
+          >
+            {resetting ? "Resetting..." : "Reset for event"}
+          </button>
           <span className="tf-refresh-note">auto-refreshing every 4s</span>
         </div>
         {status && <p className="tf-small">{status}</p>}
 
-        {curation && curation.top.length > 0 && (
+        {curation && curatedVisible.length > 0 && (
           <section className="tf-curated">
             <h2>
-              Tonight&apos;s top {curation.top.length} — curated{" "}
+              Tonight&apos;s top {curatedVisible.length} — curated{" "}
               {new Date(curation.ts).toLocaleTimeString("en-IN", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
             </h2>
-            {curation.top.map((t, i) => {
-              const q = byId.get(t.id);
-              if (!q) return null;
+            {curatedVisible.map((t, i) => {
+              const q = byId.get(t.id)!;
               return (
                 <div className="tf-curated-item" key={t.id}>
                   <span className="tf-index">
