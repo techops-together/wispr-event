@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plain dictation test</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; }
+    textarea { width: 100%; min-height: 160px; font-size: 17px; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h2>Plain dictation test</h2>
+  <p>No React, no framework — a bare textarea. Click into it and dictate with Wispr Flow.</p>
+  <textarea placeholder="Dictate here"></textarea>
+  <p id="len">0 chars</p>
+  <script>
+    const t = document.querySelector("textarea");
+    setInterval(() => {
+      document.getElementById("len").textContent = t.value.length + " chars";
+    }, 300);
+  </script>
+</body>
+</html>
